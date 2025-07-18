@@ -25,23 +25,57 @@ An intelligent time-series analytics agent that enables natural language queryin
 
 ## Setup Instructions
 
-1. Clone the repository
 ```bash
+#Clone the repository
 git clone https://github.com/MeelahMe/influxdb-ai-analytics-agent.git
 cd influxdb-ai-analytics-agent
-```
 
-2. Create environment file
-```bash
-cp .env.example .env
 # Edit .env with your configuration
+cp .env.example .env
+
+# Start backend
+cd backend
+python -m venv venv
+source venv/bin/activate # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+uvicorn app.main:app --reload
+
+# start frontend (new terminal)
+cd frontend
+npm install
+npm run dev
 ```
+---
 
-
+## Access Points
+- Frontend: `http://localhost:5173`
+- Backend: `http://localhost:8000`
+- API DOcumentation: `http://localhost:8000/docs`
 
 ---
 
-More setup instructions will be added as the project develops.
+## Documentation
+
+- Detailed Setup Gide - Comprehensive installation instructions 
+- Architecture - System design and components (coming soon)
+- API Reference - Endpoint documentation (coming soon)
+
+---
+
+## Tech Stack
+
+**Backend**
+
+- FastAPI - Modern Python web framework 
+- InfluxDB 3 - Time-series database
+- WebSockets - Real-time communication
+
+**Frontend**
+
+- React 18 with TypeScript
+- Vite - Build tool and dev server
+- Tailwind CSS - Utility-first styling
+- Recharts - Data visualization 
 
 ---
 
