@@ -56,7 +56,7 @@ npm run dev
 
 ## Documentation
 
-- Detailed Setup Gide - Comprehensive installation instructions 
+- [Detailed Setup Gide](docs/SETUP.md) - Comprehensive installation instructions 
 - Architecture - System design and components (coming soon)
 - API Reference - Endpoint documentation (coming soon)
 
