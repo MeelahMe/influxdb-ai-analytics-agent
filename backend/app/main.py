@@ -1,11 +1,18 @@
 """
 Main FastAPI application for InfluxDB AI Analytics Agent
 """
-from fastapi import FastAPI, WebSocket
+from fastapi import FastAPI, WebSocket, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import os
 from dotenv import load_dotenv
+from app.config.database import influxdb_conn
+from app.utils.sample_data import SampleDataGenerator
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Load environment variables
 load_dotenv()
@@ -44,6 +51,54 @@ async def root():
         "health": "/health"
     }
 
+# Test InfluxDB connection endpoint
+@app.get("/api/v1/test-connection")
+async def test_influxdb_connection():
+    """Test InfluxDB connection"""
+    try:
+        # Test connection
+        if influxdb_conn.test_connection():
+            return {
+                "status": "connected",
+                "message": "InfluxDB 3 Core connection successful",
+                "database": influxdb_conn.config.database if not influxdb_conn.use_mock else "mock",
+                "mode": "mock" if influxdb_conn.use_mock else "live"
+            }
+        else:
+            raise HTTPException(status_code=503, detail="Connection test failed")
+    except Exception as e:
+        logger.error(f"InfluxDB connection failed: {str(e)}")
+        raise HTTPException(status_code=503, detail=f"Database connection failed: {str(e)}")
+
+# Generate sample data endpoint
+@app.post("/api/v1/generate-sample-data")
+async def generate_sample_data():
+    """Generate sample data for testing"""
+    try:
+        SampleDataGenerator.populate_sample_data()
+        return {
+            "status": "success",
+            "message": "Sample data generated successfully"
+        }
+    except Exception as e:
+        logger.error(f"Failed to generate sample data: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to generate sample data: {str(e)}")
+
+# API info endpoint
+@app.get("/api/v1/info")
+async def api_info():
+    """Get API information"""
+    return {
+        "name": "InfluxDB AI Analytics Agent",
+        "version": "1.0.0",
+        "features": [
+            "Natural Language Queries",
+            "Real-time Analytics",
+            "AI-powered Insights",
+            "Time-series Visualization"
+        ]
+    }
+
 # WebSocket endpoint for real-time chat
 @app.websocket("/ws/chat")
 async def websocket_chat(websocket: WebSocket):
@@ -62,21 +117,6 @@ async def websocket_chat(websocket: WebSocket):
     finally:
         await websocket.close()
 
-# API info endpoint
-@app.get("/api/v1/info")
-async def api_info():
-    """Get API information"""
-    return {
-        "name": "InfluxDB AI Analytics Agent",
-        "version": "1.0.0",
-        "features": [
-            "Natural Language Queries",
-            "Real-time Analytics",
-            "AI-powered Insights",
-            "Time-series Visualization"
-        ]
-    }
-
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(
@@ -85,4 +125,3 @@ if __name__ == "__main__":
         port=int(os.getenv("APP_PORT", 8000)),
         reload=os.getenv("APP_DEBUG", "True").lower() == "true"
     )
-    
