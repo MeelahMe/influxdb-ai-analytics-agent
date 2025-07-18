@@ -2,7 +2,7 @@
 
 An intelligent time-series analytics agent that enables natural language querying of InfluxDB 3 data with real-time visualization and AI-powered insights.
 
-# **Project Status: In Development**: This project is curerntly being built. Documentation will be updated as features are implemented.
+**Project Status: In Development**: This project is curerntly being built. Documentation will be updated as features are implemented.
 
 ## Features
 
@@ -22,3 +22,27 @@ An intelligent time-series analytics agent that enables natural language queryin
 - InfluxDB 3 Cloud account (or local InfluxDB v2 for development)
 
 --- 
+
+## Setup Instructions
+
+1. Clone the repository
+```bash
+git clone https://github.com/MeelahMe/influxdb-ai-analytics-agent.git
+cd influxdb-ai-analytics-agent
+```
+
+2. Create environment file
+```bash
+cp .env.example .env
+# Edit .env with your configuration
+```
+
+
+
+---
+
+More setup instructions will be added as the project develops.
+
+---
+
+Built with ❤️ for the time-series analytics community
