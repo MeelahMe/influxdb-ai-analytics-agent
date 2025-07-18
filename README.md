@@ -56,7 +56,7 @@ npm run dev
 
 ## Documentation
 
-- [Detailed Setup Gide](docs/SETUP.md) - Comprehensive installation instructions 
+- [Detailed Setup Guide](docs/SETUP.md) - Comprehensive installation instructions 
 - Architecture - System design and components (coming soon)
 - API Reference - Endpoint documentation (coming soon)
 
