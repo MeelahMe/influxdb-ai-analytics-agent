@@ -1,127 +1,96 @@
-"""
-Main FastAPI application for InfluxDB AI Analytics Agent
-"""
-from fastapi import FastAPI, WebSocket, HTTPException
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
-import os
-from dotenv import load_dotenv
-from app.config.database import influxdb_conn
-from app.utils.sample_data import SampleDataGenerator
-import logging
+from pydantic import BaseModel
+import json
+import asyncio
+from datetime import datetime
+from .config.database import influxdb_conn
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+app = FastAPI(title="InfluxDB AI Analytics Agent")
 
-# Load environment variables
-load_dotenv()
-
-# Initialize FastAPI app
-app = FastAPI(
-    title="InfluxDB AI Analytics Agent",
-    description="AI-powered time-series analytics with natural language querying",
-    version="1.0.0",
-    docs_url="/docs",
-    redoc_url="/redoc"
-)
-
-# Configure CORS
+# Add CORS middleware - IMPORTANT: This must be added BEFORE other routes
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[os.getenv("FRONTEND_URL", "http://localhost:5173")],
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:5173", "http://127.0.0.1:5173"],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
+
+# Pydantic models
+class QueryRequest(BaseModel):
+    message: str
+
+class QueryResponse(BaseModel):
+    response: str
+    timestamp: str
 
 # Health check endpoint
 @app.get("/health")
 async def health_check():
-    """Check if the API is running"""
-    return {"status": "healthy", "service": "influxdb-ai-agent"}
+    return {"status": "healthy", "timestamp": datetime.now().isoformat()}
 
-# Root endpoint
-@app.get("/")
-async def root():
-    """Welcome endpoint"""
-    return {
-        "message": "Welcome to InfluxDB AI Analytics Agent API",
-        "docs": "/docs",
-        "health": "/health"
-    }
-
-# Test InfluxDB connection endpoint
+# Test InfluxDB connection
 @app.get("/api/v1/test-connection")
-async def test_influxdb_connection():
-    """Test InfluxDB connection"""
+async def test_connection():
     try:
-        # Test connection
-        if influxdb_conn.test_connection():
+        # Use your existing connection class
+        is_connected = influxdb_conn.test_connection()
+        
+        if is_connected:
             return {
                 "status": "connected",
-                "message": "InfluxDB 3 Core connection successful",
-                "database": influxdb_conn.config.database if not influxdb_conn.use_mock else "mock",
-                "mode": "mock" if influxdb_conn.use_mock else "live"
+                "database": influxdb_conn.config.database if not influxdb_conn.use_mock else "mock_mode",
+                "mock_mode": influxdb_conn.use_mock,
+                "timestamp": datetime.now().isoformat()
             }
         else:
-            raise HTTPException(status_code=503, detail="Connection test failed")
+            raise HTTPException(status_code=500, detail="Database connection failed")
+            
     except Exception as e:
-        logger.error(f"InfluxDB connection failed: {str(e)}")
-        raise HTTPException(status_code=503, detail=f"Database connection failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Database connection failed: {str(e)}")
 
-# Generate sample data endpoint
-@app.post("/api/v1/generate-sample-data")
-async def generate_sample_data():
-    """Generate sample data for testing"""
+# Query endpoint for chat messages
+@app.post("/api/v1/query", response_model=QueryResponse)
+async def process_query(request: QueryRequest):
     try:
-        SampleDataGenerator.populate_sample_data()
-        return {
-            "status": "success",
-            "message": "Sample data generated successfully"
-        }
+        # For now, return a placeholder response
+        # Later, this will integrate with LLM and query InfluxDB
+        response_text = f'I received your message: "{request.message}". The natural language processing feature is coming soon!'
+        
+        return QueryResponse(
+            response=response_text,
+            timestamp=datetime.now().isoformat()
+        )
     except Exception as e:
-        logger.error(f"Failed to generate sample data: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to generate sample data: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Query processing failed: {str(e)}")
 
-# API info endpoint
-@app.get("/api/v1/info")
-async def api_info():
-    """Get API information"""
-    return {
-        "name": "InfluxDB AI Analytics Agent",
-        "version": "1.0.0",
-        "features": [
-            "Natural Language Queries",
-            "Real-time Analytics",
-            "AI-powered Insights",
-            "Time-series Visualization"
-        ]
-    }
-
-# WebSocket endpoint for real-time chat
-@app.websocket("/ws/chat")
-async def websocket_chat(websocket: WebSocket):
-    """WebSocket endpoint for real-time chat interface"""
+# WebSocket endpoint for real-time communication
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
     try:
         while True:
             # Receive message from client
             data = await websocket.receive_text()
+            message_data = json.loads(data)
             
-            # Echo back for now - will be replaced with AI agent logic
-            await websocket.send_text(f"Echo: {data}")
+            # Process the message (placeholder for now)
+            response = {
+                "response": f"WebSocket received: {message_data.get('message', 'No message')}",
+                "timestamp": datetime.now().isoformat()
+            }
             
+            # Send response back to client
+            await websocket.send_text(json.dumps(response))
+            
+    except WebSocketDisconnect:
+        print("WebSocket client disconnected")
     except Exception as e:
         print(f"WebSocket error: {e}")
-    finally:
         await websocket.close()
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(
-        "main:app",
-        host=os.getenv("APP_HOST", "0.0.0.0"),
-        port=int(os.getenv("APP_PORT", 8000)),
-        reload=os.getenv("APP_DEBUG", "True").lower() == "true"
-    )
+    uvicorn.run(app, host="0.0.0.0", port=8000)
+    
